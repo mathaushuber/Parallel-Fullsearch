@@ -131,7 +131,8 @@ int main()
 
     print_frame_luma(video->frames->luma[0]);
     print_frame_chroma(video->frames->chroma[0]);
-
+    
+    free(video->frames);
     free(video);
     return 0;
 }
