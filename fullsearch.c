@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <time.h> 
 
 #define WIDTH 640
 #define HEIGHT 360
@@ -34,7 +35,7 @@ int print_frame_luma(unsigned char *luma)
     {
         for (j = 0; j < WIDTH; ++j)
         {
-            printf("%x ", luma[i * WIDTH + j]);
+            printf("%u ", luma[i * WIDTH + j]);
         }
         printf("\n");
     }
@@ -50,7 +51,7 @@ int print_frame_chroma(unsigned char *chroma)
     {
         for (j = 0; j < WIDTH; ++j)
         {
-            printf("%x ", chroma[i * WIDTH + j]);
+            printf("%u ", chroma[i * WIDTH + j]);
         }
         printf("\n");
     }
@@ -125,8 +126,10 @@ struct video *load_file(char *file_name)
 
 int main()
 {
+	double time_spent = 0.0;
+    clock_t begin = clock();
     struct video *video;
-    printf("\nTESTE\n");
+    
     video = load_file("video_converted_640x360.yuv");
 
     print_frame_luma(video->frames->luma[0]);
@@ -134,5 +137,10 @@ int main()
     
     free(video->frames);
     free(video);
+    
+    clock_t end = clock();
+    time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
+ 
+    printf("The elapsed time is %f seconds", time_spent);
     return 0;
 }
