@@ -27,6 +27,7 @@ struct frames
     unsigned char chroma[N_FRAMES][CHROMA_SIZE];
 };
 
+//Printando o canal luma
 int print_frame_luma(unsigned char *luma)
 {
     int i, j;
@@ -43,6 +44,7 @@ int print_frame_luma(unsigned char *luma)
     return 0;
 }
 
+//Printando o canal chroma 
 int print_frame_chroma(unsigned char *chroma)
 {   
     int i, j;
@@ -59,6 +61,7 @@ int print_frame_chroma(unsigned char *chroma)
     return 0;
 }
 
+//Alocando memória pro vídeo
 struct video *alloc_video(struct video *video)
 {
     video = malloc(sizeof(struct video));
@@ -70,6 +73,7 @@ struct video *alloc_video(struct video *video)
     return video;
 }
 
+//Alocando memória para os frames
 struct frames *alloc_frames(struct frames *frames)
 {
     frames = malloc(sizeof(struct frames));
@@ -81,6 +85,40 @@ struct frames *alloc_frames(struct frames *frames)
     return frames;
 }
 
+/*
+int fs_estimation_motion(unsigned char *chroma, unsigned char *luma){
+    char current_block, block_size;
+    int search_area_width = 8;
+    int search_area_height = 8;
+    //CALCULAR O SAD -> SOMA DAS DIFERENÇAS ABSOLUTAS
+    //New SAD...
+    for(i = 0; i < search_area_width; i++){
+        for(j = 0; i < search_area_height; j++){
+            acc = 0; // acumulador dos valores de SAD. Inicialmente setado como 0
+            for(k = 0; k < block_size_width; k++){
+                for(l = 0; l < block_size_height; l++){
+                    acc = acc + abs (search_area[i+k][j+l] - current_block[k][l]);
+                }
+            }
+            sad_vector[search_area_width * i + j] = acc;
+        }
+    }
+    for(n = 0; n < search_area_width*search_area_height - 1; n++){
+        if(sad_vector[n] < sad_vector[n+1]){
+            sad = sad_vector[n];
+            mv = getArgumentPos(n);
+        }
+    
+        else{
+            sad = sad_vector[n+1];
+            mv = getArgumentPos(n+1);
+        }
+    }
+    return sad, mv;
+}
+*/
+
+//Carregando o vídeo
 struct video *load_file(char *file_name)
 {
     struct video *video;
@@ -124,6 +162,7 @@ struct video *load_file(char *file_name)
     return video;
 }
 
+
 int main()
 {
 	double time_spent = 0.0;
@@ -132,8 +171,8 @@ int main()
     
     video = load_file("video_converted_640x360.yuv");
 
-    print_frame_luma(video->frames->luma[0]);
-    print_frame_chroma(video->frames->chroma[0]);
+//    print_frame_luma(video->frames->luma[0]);
+//    print_frame_chroma(video->frames->chroma[0]);
     
     free(video->frames);
     free(video);
@@ -141,6 +180,6 @@ int main()
     clock_t end = clock();
     time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
  
-    printf("The elapsed time is %f seconds", time_spent);
+    printf("The elapsed time is %f seconds \n", time_spent);
     return 0;
 }
