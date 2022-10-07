@@ -28,7 +28,7 @@ struct frames
 };
 
 //Printando o canal luma
-int print_frame_luma(unsigned char *luma)
+void print_frame_luma(unsigned char *luma)
 {
     int i, j;
     printf("\nPRINTING FRAME LUMA\n");
@@ -41,11 +41,49 @@ int print_frame_luma(unsigned char *luma)
         printf("\n");
     }
     printf("\nEND OF FRAME LUMA\n");
-    return 0;
+}
+//GAMBIARRAS PARA VISUALIZAÇÃO DO VÍDEO NO YUVIEW
+void write_frame_chroma(unsigned char *chroma){
+    int i, j;
+    char url[]="chroma.yuv";
+    FILE *arq;
+    arq = fopen(url, "w");
+    if(arq == NULL){
+        printf("Erro, nao foi possivel abrir o arquivo\n");
+    }
+    else{
+    for (i = 0; i < HEIGHT / 2; ++i)
+    {
+        for (j = 0; j < WIDTH; ++j)
+        {
+            fputc(chroma[i * WIDTH + j], arq);
+        }
+    }
+    fclose(arq);
+    }
 }
 
+void write_frame_luma(unsigned char *luma){
+    int i, j;
+    char url[]="luma.yuv";
+    FILE *arq;
+    arq = fopen(url, "w");
+    if(arq == NULL){
+        printf("Erro, nao foi possivel abrir o arquivo\n");
+    }
+    else{
+    for (i = 0; i < HEIGHT / 2; ++i)
+    {
+        for (j = 0; j < WIDTH; ++j)
+        {
+            fputc(luma[i * WIDTH + j], arq);
+        }
+    }
+    fclose(arq);
+    }
+}
 //Printando o canal chroma 
-int print_frame_chroma(unsigned char *chroma)
+void print_frame_chroma(unsigned char *chroma)
 {   
     int i, j;
     printf("\nPRINTING FRAME CHROMA\n");
@@ -58,7 +96,6 @@ int print_frame_chroma(unsigned char *chroma)
         printf("\n");
     }
     printf("\nEND OF FRAME CHROMA\n");
-    return 0;
 }
 
 //Alocando memória pro vídeo
@@ -170,10 +207,10 @@ int main()
     struct video *video;
     
     video = load_file("video_converted_640x360.yuv");
-
-//    print_frame_luma(video->frames->luma[0]);
-//    print_frame_chroma(video->frames->chroma[0]);
-    
+    //printando apenas o canal de luminosidade
+    print_frame_luma(video->frames->luma[0]);
+ //   print_frame_chroma(video->frames->chroma[0]);
+//    write_frame_chroma(video->frames->chroma[0]);
     free(video->frames);
     free(video);
     
