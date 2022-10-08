@@ -173,20 +173,22 @@ int full_search(unsigned char **frame_R, unsigned char **frame_A)
     int i;
     unsigned char **block;
     unsigned char **search_area;
-    int n_blocks = (WIDTH - BLOCK_S + 1) * (HEIGHT - BLOCK_S + 1);
+    int max_h = HEIGHT - BLOCK_S + 1;
+    int max_w = WIDTH - BLOCK_S + 1;
+    int n_blocks = max_h * max_w;
     int Rv[n_blocks][2], Ra[n_blocks][2];
     
     Rv = pos
    
-    for(i = 0; i < WIDTH - BLOCK_S + 1; ++i)
+    for(i = 0; i < max_h; ++i)
     {
-        for(j = 0; j < HEIGHT - BLOCK_S + 1; ++j)
+        for(j = 0; j < max_w; ++j)
         {
             block = frame_A[i][j];
             search_area = get_search_area(j, i, frame_R);
-            Rv[i*n_blocks + j] = block_matching(block, search_area);
-            Ra[i*n_blocks + j][0] = j;
-            Ra[i*n_blocks + j][1] = i;
+            Rv[i*max_w + j] = block_matching(block, search_area);
+            Ra[i*max_w + j][0] = j;
+            Ra[i*max_w + j][1] = i;
         }
     }
 
