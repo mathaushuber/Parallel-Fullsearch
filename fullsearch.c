@@ -210,7 +210,7 @@ int full_search(unsigned char **frame_R, unsigned char **frame_A)
             
             block_pos[0] =  j; block_pos[1] = i;
             search_area = get_search_area_pos(j, i, frame_R);
-            Rv[i*max_w + j] = block_matching(block, search_area);
+            Rv[i*max_w + j] = block_matching(block_pos, search_area, frame_R, frame_A);
             Ra[i*max_w + j][0] = j; //x
             Ra[i*max_w + j][1] = i; //y
         }
