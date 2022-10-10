@@ -250,11 +250,11 @@ int main()
     for(int i = 0; i < N_FRAMES; i++){
         for(int k = 0; k < HEIGHT; k++){
             for(int l = 0; l < WIDTH; l++){
-                frame_R = video->frames->luma[i][k * WIDTH + l];
+                **frame_R = video->frames->luma[i][k * WIDTH + l];
                 if(i + 1 < N_FRAMES){
-                    frame_A = video->frames->luma[i+1][k* WIDTH + l];
+                    **frame_A = video->frames->luma[i+1][k* WIDTH + l];
                 }
-                full_search(**frame_R, **frame_A);
+                full_search(frame_R, frame_A);
             }
         }
     }
