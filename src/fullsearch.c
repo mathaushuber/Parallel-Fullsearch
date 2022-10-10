@@ -258,6 +258,9 @@ int main()
             }
         }
     }
+  
+    print_frame_luma(video->frames->luma[0]);
+    
     free(video->frames);
     free(frame_A);
     free(frame_R);
