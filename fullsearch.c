@@ -8,8 +8,9 @@
 #define HEIGHT 360
 #define N_FRAMES 120
 #define BLOCK_S 8
-#define SEARCH_AREA_H 64
-#define SEARCH_AREA_W 36
+#define SEARCH_AREA_S 64
+
+
 
 enum frame_cfg
 {
@@ -31,6 +32,14 @@ struct frames
     unsigned char luma[N_FRAMES][LUMA_SIZE];
     unsigned char chroma[N_FRAMES][CHROMA_SIZE];
 };
+
+int *block_matching(int *block_pos, int *search_A_pos, unsigned char **frame_R, unsigned char **frame_A);
+int print_frame_luma(unsigned char *luma);
+int print_frame_chroma(unsigned char *chroma);
+struct video *alloc_video(struct video *video);
+struct video *load_file(char *file_name);
+int *get_search_area_pos(int x, int y, unsigned char **frame_R);
+int full_search(unsigned char **frame_R, unsigned char **frame_A);
 
 int print_frame_luma(unsigned char *luma)
 {
@@ -137,7 +146,7 @@ struct video *load_file(char *file_name)
     return video;
 }
 
-unsigned char *get_search_area(int x, int y, unsigned char **frame_R)
+int *get_search_area_pos(int x, int y, unsigned char **frame_R)
 {
 /* 
     Get an Search Area centered around an block.
@@ -149,11 +158,36 @@ unsigned char *get_search_area(int x, int y, unsigned char **frame_R)
     return: 
         best_pos - int* - array with x,y position of best matching block
     
-*/
+*/  
+    int area_x, area_y;
+    int bound_s = (SEARCH_AREA_S - BLOCK_S) / 2;
     
-    unsigned char *search_area = malloc(SEARCH_AREA_H*SEARCH_AREA_W*sizeof(char));
-    //---
-    return search_area;
+    //Vertical bounds
+    area_y = y - bound_s;
+    if (area_y < 0)
+        area_y = 0;
+    else
+    {
+        int lower_bound = y + BLOCK_S -1 + bound_s;
+        if (lower_bound > HEIGHT - 1)
+            area_y -= lower_bound - HEIGHT;
+    }
+
+    //Horizontal bounds
+    area_x = x - bound_s;
+    if (area_x < 0)
+        area_x = 0;
+    else
+    {
+        int right_bound = x + BLOCK_S -1 + bound_s;
+        if (right_bound > WIDTH - 1)
+            area_x -= right_bound - WIDTH;
+    }
+    
+    int *search_area_pos = malloc(2*sizeof(int));
+    search_area_pos[0] = area_x;
+    search_area_pos[1] = area_y;
+    return search_area_pos;
 }
 
 int full_search(unsigned char **frame_R, unsigned char **frame_A)
@@ -169,31 +203,29 @@ int full_search(unsigned char **frame_R, unsigned char **frame_A)
     
 */
     int i, j;
-    unsigned char **block;
-    unsigned char **search_area;
+    int block_pos[2], *search_area_pos; //x, y positions
     int max_h = HEIGHT - BLOCK_S + 1;
     int max_w = WIDTH - BLOCK_S + 1;
     int n_blocks = max_h * max_w;
-    int Rv[n_blocks][2], Ra[n_blocks][2];
+    int *Rv[n_blocks], **Ra[n_blocks];
     
-    Rv = pos;
-   
     for(i = 0; i < max_h; ++i)
     {
         for(j = 0; j < max_w; ++j)
-        {
-            block = frame_A[i][j];
-            search_area = get_search_area(j, i, frame_R);
-            Rv[i*max_w + j] = block_matching(block, search_area);
-            Ra[i*max_w + j][0] = j;
-            Ra[i*max_w + j][1] = i;
+        {   
+            
+            block_pos[0] =  j; block_pos[1] = i;
+            search_area_pos = get_search_area_pos(j, i, frame_R);
+            Rv[i*max_w + j] = block_matching(block_pos, search_area_pos, frame_R, frame_A);
+            *Ra[i*max_w + j][0] = j; //x
+            *Ra[i*max_w + j][1] = i; //y
         }
     }
 
-    return Rv, Ra;
+    return **Rv, ***Ra;
 }
 
-int *block_matching(unsigned char **block, unsigned char **search_area)
+int *block_matching(int *block_pos, int *search_A_pos, unsigned char **frame_R, unsigned char **frame_A)
 {  
 /* 
 Return the position of the best matching block inside an Search Area.
@@ -209,16 +241,22 @@ Return the position of the best matching block inside an Search Area.
     int SAD;
     int *best_pos = malloc(2*sizeof(int));
     int i,j, k, l;
+    int area_x, area_y, block_x, block_y;
+    
+    area_x = search_A_pos[0];
+    area_y = search_A_pos[1];
+    block_x = block_pos[0]; 
+    block_y = block_pos[1]; 
 
-    for(i=0; i<SEARCH_AREA_H - BLOCK_S+1; ++i)
+    for(i=area_x; i<SEARCH_AREA_S - BLOCK_S+1; ++i)
     {
-        for(j=0; j<SEARCH_AREA_W - BLOCK_S+1; ++j)
+        for(j=area_y; j<SEARCH_AREA_S - BLOCK_S+1; ++j)
         {
             SAD = 0;
-            for(k=0; k<BLOCK_S; ++k)
+            for(k=block_x; k<BLOCK_S; ++k)
             {
-                for(l=0; l<BLOCK_S; ++l)
-                    SAD += abs(search_area[i+k][j+l] - block[k][l]);
+                for(l=block_y; l<BLOCK_S; ++l)
+                    SAD += abs(frame_R[i+k][j+l] - frame_A[k][l]);
             }
                 
             if(SAD < best_SAD)
@@ -237,6 +275,7 @@ Return the position of the best matching block inside an Search Area.
 
 int main()
 {
+    printf("\n%d\n", N_BLOCKS);
     double time_spent = 0.0;
     clock_t begin = clock();	
     struct video *video;
