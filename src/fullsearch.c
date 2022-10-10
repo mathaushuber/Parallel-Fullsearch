@@ -3,44 +3,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
+#include <omp.h>
+#include "fullsearch.h"
 
-#define WIDTH 640
-#define HEIGHT 360
-#define N_FRAMES 120
-#define BLOCK_S 8
-#define SEARCH_AREA_S 64
-
-
-
-enum frame_cfg
-{
-    LUMA_SIZE = WIDTH * HEIGHT,
-    CHROMA_SIZE = LUMA_SIZE / 2,
-    FRAME_SIZE = LUMA_SIZE + CHROMA_SIZE,
-    N_BLOCKS = LUMA_SIZE / (BLOCK_S * BLOCK_S)
-
-};
-
-struct video
-{
-    struct frames *frames;
-    int *disp_vectors[N_FRAMES];
-};
-
-struct frames
-{
-    unsigned char luma[N_FRAMES][LUMA_SIZE];
-    unsigned char chroma[N_FRAMES][CHROMA_SIZE];
-};
-
-int *block_matching(int *block_pos, int *search_A_pos, unsigned char **frame_R, unsigned char **frame_A);
-int print_frame_luma(unsigned char *luma);
-int print_frame_chroma(unsigned char *chroma);
-struct video *alloc_video(struct video *video);
-struct video *load_file(char *file_name);
-int *get_search_area_pos(int x, int y, unsigned char **frame_R);
-int full_search(unsigned char **frame_R, unsigned char **frame_A);
-struct frames *alloc_frames(struct frames *frames);
 
 int print_frame_luma(unsigned char *luma)
 {
@@ -279,28 +244,26 @@ int main()
     double time_spent = 0.0;
     clock_t begin = clock();	
     struct video *video;
-    /*
     unsigned char **frame_R;
     unsigned char **frame_A;
-    frame_R = malloc(sizeof(struct frames));
-    frame_A = malloc(sizeof(struct frames));
-    */
     video = load_file("../data/video_converted_640x360.yuv");
-    /*
     for(int i = 0; i < N_FRAMES; i++){
         for(int k = 0; k < HEIGHT; k++){
             for(int l = 0; l < WIDTH; l++){
-                **frame_R = video->frames->luma[i][k * WIDTH + l];
-                **frame_A = video->frames->luma[i+1][k* WIDTH + l];
-                full_search(frame_R, frame_A);
+                frame_R = video->frames->luma[i][k * WIDTH + l];
+                if(i + 1 < N_FRAMES){
+                    frame_A = video->frames->luma[i+1][k* WIDTH + l];
+                }
+                full_search(**frame_R, **frame_A);
             }
         }
     }
-    */
+  
     print_frame_luma(video->frames->luma[0]);
+    
     free(video->frames);
- //   free(frame_A);
- //   free(frame_R);
+    free(frame_A);
+    free(frame_R);
     free(video);
     clock_t end = clock();
     time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
