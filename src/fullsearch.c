@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
+#include <omp.h>
 #include "fullsearch.h"
 
 
@@ -243,28 +244,23 @@ int main()
     double time_spent = 0.0;
     clock_t begin = clock();	
     struct video *video;
-    /*
     unsigned char **frame_R;
     unsigned char **frame_A;
-    frame_R = malloc(sizeof(struct frames));
-    frame_A = malloc(sizeof(struct frames));
-    */
     video = load_file("../data/video_converted_640x360.yuv");
-    /*
     for(int i = 0; i < N_FRAMES; i++){
         for(int k = 0; k < HEIGHT; k++){
             for(int l = 0; l < WIDTH; l++){
-                **frame_R = video->frames->luma[i][k * WIDTH + l];
-                **frame_A = video->frames->luma[i+1][k* WIDTH + l];
-                full_search(frame_R, frame_A);
+                frame_R = video->frames->luma[i][k * WIDTH + l];
+                if(i + 1 < N_FRAMES){
+                    frame_A = video->frames->luma[i+1][k* WIDTH + l];
+                }
+                full_search(**frame_R, **frame_A);
             }
         }
     }
-    */
-    print_frame_luma(video->frames->luma[0]);
     free(video->frames);
- //   free(frame_A);
- //   free(frame_R);
+    free(frame_A);
+    free(frame_R);
     free(video);
     clock_t end = clock();
     time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
