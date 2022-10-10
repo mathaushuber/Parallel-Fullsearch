@@ -102,6 +102,7 @@ struct video *load_file(char *file_name)
     
     args:
         file_name - char* - string with file location/name
+        
     return: 
         video - struct video* - struct video filled with the video data
     
@@ -155,6 +156,7 @@ int *get_search_area_pos(int x, int y, unsigned char **frame_R)
         frame_R - unsigned char** - matrix of reference frame
         x - int - column position of the block
         y - int - line position of the block
+
     return: 
         best_pos - int* - array with x,y position of best matching block
     
@@ -200,14 +202,68 @@ int full_search(unsigned char **frame_R, unsigned char **frame_A)
         frame_A - unsigned char** - matrix of current frame
     return: 
         best_pos - int* - array with x,y position of best matching block
+
+
+
+    return: 
+        best_pos - int* - array with x,y position of best matching block
     
+*/  
+    int area_x, area_y;
+    int bound_s = (SEARCH_AREA_S - BLOCK_S) / 2;
+    
+    //Vertical bounds
+    area_y = y - bound_s;
+    if (area_y < 0)
+        area_y = 0;
+    else
+    {
+        int lower_bound = y + BLOCK_S -1 + bound_s;
+        if (lower_bound > HEIGHT - 1)
+            area_y -= lower_bound - HEIGHT;
+    }
+
+    //Horizontal bounds
+    area_x = x - bound_s;
+    if (area_x < 0)
+        area_x = 0;
+    else
+    {
+        int right_bound = x + BLOCK_S -1 + bound_s;
+        if (right_bound > WIDTH - 1)
+            area_x -= right_bound - WIDTH;
+    }
+    
+    int search_area_pos = malloc(2*sizeof(int));
+    search_area_pos[0] = area_x;
+    search_area_pos[1] = area_y;
+    return search_area_pos;
+}
+
+int full_search(unsigned char **frame_R, unsigned char **frame_A)
+{   
+/* 
+    Return Rv and Ra arrays of each block.
+    
+    args:
+        frame_R - unsigned char** - matrix of reference frame
+        frame_A - unsigned char** - matrix of current frame
+
+    return: 
+        best_pos - int* - array with x,y position of best matching block
+    
+
 */
     int i, j;
     int block_pos[2], *search_area_pos; //x, y positions
     int max_h = HEIGHT - BLOCK_S + 1;
     int max_w = WIDTH - BLOCK_S + 1;
     int n_blocks = max_h * max_w;
+
     int *Rv[n_blocks], **Ra[n_blocks];
+
+    int *Rv[n_blocks], Ra[n_blocks][2];
+
     
     for(i = 0; i < max_h; ++i)
     {
@@ -215,6 +271,7 @@ int full_search(unsigned char **frame_R, unsigned char **frame_A)
         {   
             
             block_pos[0] =  j; block_pos[1] = i;
+
             search_area_pos = get_search_area_pos(j, i, frame_R);
             Rv[i*max_w + j] = block_matching(block_pos, search_area_pos, frame_R, frame_A);
             *Ra[i*max_w + j][0] = j; //x
@@ -223,6 +280,16 @@ int full_search(unsigned char **frame_R, unsigned char **frame_A)
     }
 
     return **Rv, ***Ra;
+
+            search_area = get_search_area_pos(j, i, frame_R);
+            Rv[i*max_w + j] = block_matching(block_pos, search_area, frame_R, frame_A);
+            Ra[i*max_w + j][0] = j; //x
+            Ra[i*max_w + j][1] = i; //y
+        }
+    }
+
+    return Rv, Ra;
+
 }
 
 int *block_matching(int *block_pos, int *search_A_pos, unsigned char **frame_R, unsigned char **frame_A)
@@ -233,6 +300,10 @@ Return the position of the best matching block inside an Search Area.
     args:
         block - unsigned char** - matrix of the block
         search_area - unsigned char** - matrix of the Search Area
+
+
+
+
     return: 
         best_pos - int* - array with x,y position of best matching block
     
@@ -276,6 +347,7 @@ Return the position of the best matching block inside an Search Area.
 int main()
 {
     printf("\n%d\n", N_BLOCKS);
+
     double time_spent = 0.0;
     clock_t begin = clock();	
     struct video *video;
@@ -286,5 +358,7 @@ int main()
     time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
  
     printf("The elapsed time is %f seconds \n", time_spent);
+
+
     return 0;
 }
