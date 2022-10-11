@@ -92,6 +92,7 @@ struct frames *alloc_frames(struct frames *frames)
     return frames;
 }
 
+
 struct video *load_file(char *file_name)
 {
     /*
@@ -239,6 +240,7 @@ int *block_matching(int *block_pos, int *search_A_pos, unsigned char (*frame_R)[
     return best_pos;
 }
 
+
 struct frame_vectors *full_search(unsigned char (*frame_R)[WIDTH], unsigned char (*frame_A)[WIDTH])
 {
     /*
@@ -275,7 +277,7 @@ struct frame_vectors *full_search(unsigned char (*frame_R)[WIDTH], unsigned char
             Rv[i * MAX_W + k] = p[1];
             Ra[i * MAX_W + j] = i;
             ++k;
-
+            free(p); free(search_area_pos);
         }
     }
     struct frame_vectors *fv = malloc(sizeof(struct frame_vectors));
@@ -292,12 +294,12 @@ int main()
     struct video *video;
     unsigned char(*frame_R)[WIDTH];
     unsigned char(*frame_A)[WIDTH];
-
+    int i;
     video = load_file("../data/video_converted_640x360.yuv");
     struct frame_vectors **video_frame_vectors;
     video_frame_vectors = malloc(N_FRAMES * sizeof(struct frame_vectors) - 1);
 
-    for (int i = 1; i < N_FRAMES; i++)
+    for (i = 1; i < N_FRAMES; ++i)
     {
 
         frame_R = (unsigned char(*)[WIDTH])video->frames->luma[i - 1];
@@ -309,19 +311,35 @@ int main()
                video_frame_vectors[i - 1]->Ra[0],
                video_frame_vectors[i - 1]->Ra[0],
                video_frame_vectors[i - 1]->Rv[0],
-               video_frame_vectors[i - 1]->Rv[0]);
-   */         
+               video_frame_vectors[i - 1]->Rv[0]);  
+        
+   */   
+        if (i%20 == 0)
+        {
+            printf("\nFRAMES PROCESSED: %d\n", i);
+        }
+        
+        
     }
     
-    //ESSES FREE TÃO ERRADOS
-    // free(video->frames);
-    // free(frame_A);
-    // free(frame_R);
-    // free(video);
+    printf("\nFRAMES PROCESSED: %d\n", i);
+    
     clock_t end = clock();
     time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
 
     printf("The elapsed time is %f seconds \n", time_spent);
+    
+    //ESSES FREE TÃO ERRADOS
+    free(video->frames);
+    free(video);
+    
+    for(i=0; i<N_FRAMES-1;++i)
+    {
+        free(video_frame_vectors[i]->Ra);
+        free(video_frame_vectors[i]->Rv);
+        free(video_frame_vectors[i]);
+    }
+    free(video_frame_vectors);
 
     return 0;
 }
