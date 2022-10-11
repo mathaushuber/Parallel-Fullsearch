@@ -3,9 +3,40 @@
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
-#include <omp.h>
-#include "fullsearch.h"
 
+#define WIDTH 640
+#define HEIGHT 360
+#define N_FRAMES 120
+#define BLOCK_S 8
+#define SEARCH_AREA_S 32
+
+enum frame_cfg
+{
+    LUMA_SIZE = WIDTH * HEIGHT,
+    CHROMA_SIZE = LUMA_SIZE / 2,
+    FRAME_SIZE = LUMA_SIZE + CHROMA_SIZE,
+    MAX_H = HEIGHT - BLOCK_S + 1,
+    MAX_W = WIDTH - BLOCK_S + 1,
+    N_BLOCKS = MAX_H * MAX_W
+};
+
+struct video
+{
+    struct frames *frames;
+    int *disp_vectors[N_FRAMES];
+};
+
+struct frames
+{
+    unsigned char luma[N_FRAMES][LUMA_SIZE];
+    unsigned char chroma[N_FRAMES][CHROMA_SIZE];
+};
+
+struct frame_vectors
+{
+    int *Rv;
+    int *Ra;
+};
 
 int print_frame_luma(unsigned char *luma)
 {
@@ -24,7 +55,7 @@ int print_frame_luma(unsigned char *luma)
 }
 
 int print_frame_chroma(unsigned char *chroma)
-{   
+{
     int i, j;
     printf("\nPRINTING FRAME CHROMA\n");
     for (i = 0; i < HEIGHT / 2; ++i)
@@ -61,17 +92,19 @@ struct frames *alloc_frames(struct frames *frames)
     return frames;
 }
 
+
 struct video *load_file(char *file_name)
 {
-/* 
-    Get video frame data
-    
-    args:
-        file_name - char* - string with file location/name
-    return: 
-        video - struct video* - struct video filled with the video data
-    
-*/
+    /*
+        Get video frame data
+
+        args:
+            file_name - char* - string with file location/name
+
+        return:
+            video - struct video* - struct video filled with the video data
+
+    */
     struct video *video;
     FILE *ptr_file;
 
@@ -83,7 +116,7 @@ struct video *load_file(char *file_name)
 
     char buffer_y[LUMA_SIZE];
     char buffer_c[CHROMA_SIZE];
-    
+
     // Try to read first Frame
     r = fread(buffer_y, 1, LUMA_SIZE, ptr_file);
     memcpy(video->frames->luma[0], buffer_y, LUMA_SIZE);
@@ -94,9 +127,9 @@ struct video *load_file(char *file_name)
     }
     fread(buffer_c, 1, CHROMA_SIZE, ptr_file);
     memcpy(video->frames->chroma[0], buffer_c, CHROMA_SIZE);
-   
+
     int i;
-    for(i=1; i<N_FRAMES; ++i)
+    for (i = 1; i < N_FRAMES; ++i)
     {
         r = fread(buffer_y, 1, LUMA_SIZE, ptr_file);
         if (r == 0)
@@ -112,162 +145,201 @@ struct video *load_file(char *file_name)
     return video;
 }
 
-int *get_search_area_pos(int x, int y, unsigned char **frame_R)
+int *get_search_area_pos(int x, int y)
 {
-/* 
-    Get an Search Area centered around an block.
-    
-    args:
-        frame_R - unsigned char** - matrix of reference frame
-        x - int - column position of the block
-        y - int - line position of the block
-    return: 
-        best_pos - int* - array with x,y position of best matching block
-    
-*/  
+    /*
+        Get an Search Area centered around an block.
+
+        args:
+            x - int - column position of the block
+            y - int - line position of the block
+
+        return:
+            best_pos - int* - array with x,y position of best matching block
+
+    */
     int area_x, area_y;
     int bound_s = (SEARCH_AREA_S - BLOCK_S) / 2;
-    
-    //Vertical bounds
+
+    // Vertical bounds
     area_y = y - bound_s;
     if (area_y < 0)
         area_y = 0;
     else
     {
-        int lower_bound = y + BLOCK_S -1 + bound_s;
+        int lower_bound = y + BLOCK_S - 1 + bound_s;
         if (lower_bound > HEIGHT - 1)
             area_y -= lower_bound - HEIGHT;
     }
 
-    //Horizontal bounds
+    // Horizontal bounds
     area_x = x - bound_s;
     if (area_x < 0)
         area_x = 0;
     else
     {
-        int right_bound = x + BLOCK_S -1 + bound_s;
+        int right_bound = x + BLOCK_S - 1 + bound_s;
         if (right_bound > WIDTH - 1)
             area_x -= right_bound - WIDTH;
     }
-    
-    int *search_area_pos = malloc(2*sizeof(int));
+
+    int *search_area_pos = malloc(2 * sizeof(int));
     search_area_pos[0] = area_x;
     search_area_pos[1] = area_y;
     return search_area_pos;
 }
 
-int full_search(unsigned char **frame_R, unsigned char **frame_A)
-{   
-/* 
-    Return Rv and Ra arrays of each block.
-    
-    args:
-        frame_R - unsigned char** - matrix of reference frame
-        frame_A - unsigned char** - matrix of current frame
-    return: 
-        best_pos - int* - array with x,y position of best matching block
-    
-*/
-    int i, j;
-    int block_pos[2], *search_area_pos; //x, y positions
-    int max_h = HEIGHT - BLOCK_S + 1;
-    int max_w = WIDTH - BLOCK_S + 1;
-    int n_blocks = max_h * max_w;
-    int *Rv[n_blocks], **Ra[n_blocks];
-    
-    for(i = 0; i < max_h; ++i)
-    {
-        for(j = 0; j < max_w; ++j)
-        {   
-            
-            block_pos[0] =  j; block_pos[1] = i;
-            search_area_pos = get_search_area_pos(j, i, frame_R);
-            Rv[i*max_w + j] = block_matching(block_pos, search_area_pos, frame_R, frame_A);
-            *Ra[i*max_w + j][0] = j; //x
-            *Ra[i*max_w + j][1] = i; //y
-        }
-    }
+int *block_matching(int *block_pos, int *search_A_pos, unsigned char (*frame_R)[WIDTH], unsigned char (*frame_A)[WIDTH])
+{
+    /*
+    Return the position of the best matching block inside an Search Area.
 
-    return **Rv, ***Ra;
-}
+        args:
+            block - unsigned char** - matrix of the block
+            search_area - unsigned char** - matrix of the Search Area
 
-int *block_matching(int *block_pos, int *search_A_pos, unsigned char **frame_R, unsigned char **frame_A)
-{  
-/* 
-Return the position of the best matching block inside an Search Area.
-    
-    args:
-        block - unsigned char** - matrix of the block
-        search_area - unsigned char** - matrix of the Search Area
-    return: 
-        best_pos - int* - array with x,y position of best matching block
-    
-*/
-    int best_SAD=16321; //64*255+1 always worst than any posibility
+        return:
+            best_pos - int* - array with x,y position of best matching block
+
+    */
+    int best_SAD = 16321; // 64*255+1 always worst than any posibility
     int SAD;
-    int *best_pos = malloc(2*sizeof(int));
-    int i,j, k, l;
+    int *best_pos = malloc(2 * sizeof(int));
+    int i, j, k, l;
     int area_x, area_y, block_x, block_y;
-    
+
     area_x = search_A_pos[0];
     area_y = search_A_pos[1];
-    block_x = block_pos[0]; 
-    block_y = block_pos[1]; 
-
-    for(i=area_x; i<SEARCH_AREA_S - BLOCK_S+1; ++i)
+    block_x = block_pos[0];
+    block_y = block_pos[1];
+    
+    for (i = area_x; i < area_x + SEARCH_AREA_S - BLOCK_S; ++i)
     {
-        for(j=area_y; j<SEARCH_AREA_S - BLOCK_S+1; ++j)
+        for (j = area_y; j < area_y + SEARCH_AREA_S - BLOCK_S; ++j)
         {
             SAD = 0;
-            for(k=block_x; k<BLOCK_S; ++k)
+            for (k = block_x; k < block_x + BLOCK_S; ++k)
             {
-                for(l=block_y; l<BLOCK_S; ++l)
-                    SAD += abs(frame_R[i+k][j+l] - frame_A[k][l]);
+                for (l = block_y; l < block_y + BLOCK_S; ++l)
+                {
+                    SAD += abs(frame_R[i + k][j + l] - frame_A[k][l]);
+                }
             }
-                
-            if(SAD < best_SAD)
+
+            if (SAD < best_SAD)
             {
                 best_SAD = SAD;
                 best_pos[0] = i;
                 best_pos[1] = j;
             }
         }
+        if (i > SEARCH_AREA_S)
+            break;
     }
-    
+
     return best_pos;
 }
 
 
+struct frame_vectors *full_search(unsigned char (*frame_R)[WIDTH], unsigned char (*frame_A)[WIDTH])
+{
+    /*
+        Return Rv and Ra arrays of each block.
+
+        args:
+            frame_R - unsigned char** - matrix of reference frame
+            frame_A - unsigned char** - matrix of current frame
+
+        return:
+            best_pos - int* - array with x,y position of best matching block
+
+    */
+    int i, j;
+    int block_pos[2], *search_area_pos; // x, y positions
+
+    int *Rv = malloc(2*N_BLOCKS * sizeof(int));
+    int *Ra = malloc(2*N_BLOCKS * sizeof(int));
+    int *p, k;
+    
+    
+    for (i = 0; i < MAX_H; ++i)
+    {   
+        k=0;
+        for (j = 0; j < MAX_W; ++j)
+        {
+            block_pos[0] = j;
+            block_pos[1] = i;
+            search_area_pos = get_search_area_pos(j, i);
+            p = block_matching(block_pos, search_area_pos, frame_R, frame_A);
+            Rv[i * MAX_W + k] = p[0];
+            Ra[i * MAX_W + k] = j;
+            ++k;
+            Rv[i * MAX_W + k] = p[1];
+            Ra[i * MAX_W + j] = i;
+            ++k;
+            free(p); free(search_area_pos);
+        }
+    }
+    struct frame_vectors *fv = malloc(sizeof(struct frame_vectors));
+    fv->Ra = Ra;
+    fv->Rv = Rv;
+
+    return fv;
+}
 
 int main()
 {
     double time_spent = 0.0;
-    clock_t begin = clock();	
+    clock_t begin = clock();
     struct video *video;
-    unsigned char **frame_R;
-    unsigned char **frame_A;
+    unsigned char(*frame_R)[WIDTH];
+    unsigned char(*frame_A)[WIDTH];
+    int i;
     video = load_file("../data/video_converted_640x360.yuv");
-    for(int i = 0; i < N_FRAMES; i++){
-        for(int k = 0; k < HEIGHT; k++){
-            for(int l = 0; l < WIDTH; l++){
-                **frame_R = video->frames->luma[i][k * WIDTH + l];
-                if(i + 1 < N_FRAMES){
-                    **frame_A = video->frames->luma[i+1][k* WIDTH + l];
-                }
-                full_search(frame_R, frame_A);
-            }
+    struct frame_vectors **video_frame_vectors;
+    video_frame_vectors = malloc(N_FRAMES * sizeof(struct frame_vectors) - 1);
+
+    for (i = 1; i < N_FRAMES; ++i)
+    {
+
+        frame_R = (unsigned char(*)[WIDTH])video->frames->luma[i - 1];
+        frame_A = (unsigned char(*)[WIDTH])video->frames->luma[i];
+        video_frame_vectors[i - 1] = full_search(frame_R, frame_A);
+ 
+    //    PRINTA PRIMEIRO RA(0,0) e Rv de cada frame *FICA MAIS LENTO*
+    /*        printf("\n%d %d %d %d\n", 
+               video_frame_vectors[i - 1]->Ra[0],
+               video_frame_vectors[i - 1]->Ra[0],
+               video_frame_vectors[i - 1]->Rv[0],
+               video_frame_vectors[i - 1]->Rv[0]);  
+        
+   */   
+        if (i%20 == 0)
+        {
+            printf("\nFRAMES PROCESSED: %d\n", i);
         }
+        
+        
     }
-  
-    print_frame_luma(video->frames->luma[0]);
     
-    free(video->frames);
-    free(frame_A);
-    free(frame_R);
-    free(video);
+    printf("\nFRAMES PROCESSED: %d\n", i);
+    
     clock_t end = clock();
     time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
- 
+
     printf("The elapsed time is %f seconds \n", time_spent);
+    
+
+    free(video->frames);
+    free(video);
+    
+    for(i=0; i<N_FRAMES-1;++i)
+    {
+        free(video_frame_vectors[i]->Ra);
+        free(video_frame_vectors[i]->Rv);
+        free(video_frame_vectors[i]);
+    }
+    free(video_frame_vectors);
+
     return 0;
 }
