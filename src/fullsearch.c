@@ -329,7 +329,7 @@ int main()
 
     printf("The elapsed time is %f seconds \n", time_spent);
     
-    //ESSES FREE TÃO ERRADOS
+
     free(video->frames);
     free(video);
     
