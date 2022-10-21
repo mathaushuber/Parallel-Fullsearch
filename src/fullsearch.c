@@ -205,9 +205,9 @@ int *block_matching(int *block_pos, int *search_A_pos, unsigned char (*frame_R)[
     area_y = search_A_pos[1];
     block_x = block_pos[0];
     block_y = block_pos[1];
-	while(abort == 0){
 	#pragma omp parallel for private(abort)
 	for (i = area_x; i < area_x + SEARCH_AREA_S - BLOCK_S; ++i)
+	if(abort < 1){
 	{
 		#pragma omp parallel for
 		for (j = area_y; j < area_y + SEARCH_AREA_S - BLOCK_S; ++j)
@@ -234,7 +234,6 @@ int *block_matching(int *block_pos, int *search_A_pos, unsigned char (*frame_R)[
 		abort = 1;
 	}
 	}
-
     return best_pos;
 }
 
