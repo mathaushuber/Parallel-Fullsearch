@@ -4,40 +4,7 @@
 #include <string.h>
 #include <time.h>
 #include <omp.h>
-
-#define WIDTH 640
-#define HEIGHT 360
-#define N_FRAMES 120
-#define BLOCK_S 8
-#define SEARCH_AREA_S 32
-
-enum frame_cfg
-{
-    LUMA_SIZE = WIDTH * HEIGHT,
-    CHROMA_SIZE = LUMA_SIZE / 2,
-    FRAME_SIZE = LUMA_SIZE + CHROMA_SIZE,
-    MAX_H = HEIGHT - BLOCK_S + 1,
-    MAX_W = WIDTH - BLOCK_S + 1,
-    N_BLOCKS = MAX_H * MAX_W
-};
-
-struct video
-{
-    struct frames *frames;
-    int *disp_vectors[N_FRAMES];
-};
-
-struct frames
-{
-    unsigned char luma[N_FRAMES][LUMA_SIZE];
-    unsigned char chroma[N_FRAMES][CHROMA_SIZE];
-};
-
-struct frame_vectors
-{
-    int *Rv;
-    int *Ra;
-};
+#include "fs_heuristica.h"
 
 int print_frame_luma(unsigned char *luma)
 {
