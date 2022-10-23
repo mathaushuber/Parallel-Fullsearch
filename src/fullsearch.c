@@ -292,7 +292,6 @@ int write_file_out(float time){
         return 1;
     }
     fprintf(out, "\n");
-    fprintf(out, "%f", time);
     fprintf(out, "\t%f", time);
     fclose(out);
 }
