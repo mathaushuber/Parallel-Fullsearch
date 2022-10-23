@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
+#include <omp.h>
 
 #define WIDTH 640
 #define HEIGHT 360
@@ -97,13 +98,10 @@ struct video *load_file(char *file_name)
 {
     /*
         Get video frame data
-
         args:
             file_name - char* - string with file location/name
-
         return:
             video - struct video* - struct video filled with the video data
-
     */
     struct video *video;
     FILE *ptr_file;
@@ -149,14 +147,11 @@ int *get_search_area_pos(int x, int y)
 {
     /*
         Get an Search Area centered around an block.
-
         args:
             x - int - column position of the block
             y - int - line position of the block
-
         return:
             best_pos - int* - array with x,y position of best matching block
-
     */
     int area_x, area_y;
     int bound_s = (SEARCH_AREA_S - BLOCK_S) / 2;
@@ -193,66 +188,66 @@ int *block_matching(int *block_pos, int *search_A_pos, unsigned char (*frame_R)[
 {
     /*
     Return the position of the best matching block inside an Search Area.
-
         args:
             block - unsigned char** - matrix of the block
             search_area - unsigned char** - matrix of the Search Area
-
         return:
             best_pos - int* - array with x,y position of best matching block
-
     */
     int best_SAD = 16321; // 64*255+1 always worst than any posibility
     int SAD;
     int *best_pos = malloc(2 * sizeof(int));
     int i, j, k, l;
     int area_x, area_y, block_x, block_y;
-
+  //  int flag = -1;
+    int abort = 0;
     area_x = search_A_pos[0];
     area_y = search_A_pos[1];
     block_x = block_pos[0];
     block_y = block_pos[1];
-    
-    for (i = area_x; i < area_x + SEARCH_AREA_S - BLOCK_S; ++i)
-    {
-        for (j = area_y; j < area_y + SEARCH_AREA_S - BLOCK_S; ++j)
-        {
-            SAD = 0;
-            for (k = block_x; k < block_x + BLOCK_S; ++k)
-            {
-                for (l = block_y; l < block_y + BLOCK_S; ++l)
-                {
-                    SAD += abs(frame_R[i + k][j + l] - frame_A[k][l]);
-                }
-            }
+	#pragma omp parallel for private(abort)
+	for (i = area_x; i < area_x + SEARCH_AREA_S - BLOCK_S; ++i)
+	if(abort < 1){
+	{
+		#pragma omp parallel for
+		for (j = area_y; j < area_y + SEARCH_AREA_S - BLOCK_S; ++j)
+		{
+		SAD = 0;
+		#pragma omp parallel for
+		for (k = block_x; k < block_x + BLOCK_S; ++k)
+		{
+			#pragma omp parallel for reduction(+:SAD)
+			for (l = block_y; l < block_y + BLOCK_S; ++l)
+			{
+			SAD += abs(frame_R[i + k][j + l] - frame_A[k][l]);
+			}
+		}
 
-            if (SAD < best_SAD)
-            {
-                best_SAD = SAD;
-                best_pos[0] = i;
-                best_pos[1] = j;
-            }
-        }
-        if (i > SEARCH_AREA_S)
-            break;
-    }
-
+		if (SAD < best_SAD)
+		{
+			best_SAD = SAD;
+			best_pos[0] = i;
+			best_pos[1] = j;
+		}
+		}
+		if(i > SEARCH_AREA_S)
+		abort = 1;
+	}
+	}
     return best_pos;
 }
+
 
 
 struct frame_vectors *full_search(unsigned char (*frame_R)[WIDTH], unsigned char (*frame_A)[WIDTH])
 {
     /*
         Return Rv and Ra arrays of each block.
-
         args:
             frame_R - unsigned char** - matrix of reference frame
             frame_A - unsigned char** - matrix of current frame
-
         return:
             best_pos - int* - array with x,y position of best matching block
-
     */
     int i, j;
     int block_pos[2], *search_area_pos; // x, y positions
@@ -260,11 +255,11 @@ struct frame_vectors *full_search(unsigned char (*frame_R)[WIDTH], unsigned char
     int *Rv = malloc(2*N_BLOCKS * sizeof(int));
     int *Ra = malloc(2*N_BLOCKS * sizeof(int));
     int *p, k;
-    
-    
+    #pragma omp parallel for
     for (i = 0; i < MAX_H; ++i)
     {   
         k=0;
+	#pragma omp parallel for private(p, search_area_pos)
         for (j = 0; j < MAX_W; ++j)
         {
             block_pos[0] = j;
@@ -280,11 +275,25 @@ struct frame_vectors *full_search(unsigned char (*frame_R)[WIDTH], unsigned char
             free(p); free(search_area_pos);
         }
     }
+    
     struct frame_vectors *fv = malloc(sizeof(struct frame_vectors));
     fv->Ra = Ra;
     fv->Rv = Rv;
 
     return fv;
+}
+
+int write_file_out(float time){
+    FILE *out;
+    out = fopen("../out/log.csv", "a"); 
+    if(out == NULL)
+    {
+        printf("Error write out file!");
+        return 1;
+    }
+    fprintf(out, "\n");
+    fprintf(out, "\t%f", time);
+    fclose(out);
 }
 
 int main()
@@ -340,6 +349,8 @@ int main()
         free(video_frame_vectors[i]);
     }
     free(video_frame_vectors);
+
+    write_file_out(time_spent);
 
     return 0;
 }
