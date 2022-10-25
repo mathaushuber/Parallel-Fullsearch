@@ -35,8 +35,8 @@ mteste_fs_seq = sum(teste_fs_seq)/tam_seq_fs
 mteste_fs_par = sum(teste_fs_par)/tam_par_fs
 print("Média de tempo dos testes do Algoritmo Sequencial com Heurística %.2fs" %(mteste_seq_heu))
 print("Média de tempo dos testes do Algoritmo Paralelo com Heurística %.2fs" %(mteste_par_heu))
-print("Média de tempo dos testes do Algoritmo Sequencial por Força Bruta %.2fs" %(mteste_fs_par))
-print("Média de tempo dos testes do Algoritmo Paralelo por Força Bruta %.2fs" %(mteste_fs_seq))
+print("Média de tempo dos testes do Algoritmo Sequencial por Força Bruta %.2fs" %(mteste_fs_seq))
+print("Média de tempo dos testes do Algoritmo Paralelo por Força Bruta %.2fs" %(mteste_fs_par))
 print("Desvio Padrão dos testes do Algoritmo Sequencial com Heurística %.2fs" %(np.std(teste_seq)))
 print("Desvio Padrão dos testes do Algoritmo Paralelo com Heurística %.2fs" %(np.std(teste_par)))
 print("Desvio Padrão dos testes do Algoritmo Sequencial por Força Bruta %.2fs" %(np.std(teste_fs_seq)))
