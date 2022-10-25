@@ -237,6 +237,8 @@ int main()
     
     for (i=0; i<N_FRAMES-1; ++i)
         free(video_compacted.motion_vectors[i]);
-       
+    
+    write_file_out(time_spent);
+    
     return 0;
 }
