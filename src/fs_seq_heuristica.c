@@ -252,7 +252,7 @@ int write_file_out(float time){
         return 1;
     }
     fprintf(out, "\n");
-    fprintf(out, "\t%f", time);
+    fprintf(out, "%f", time);
     fclose(out);
 }
 
@@ -310,7 +310,7 @@ int main()
     }
     free(video_frame_vectors);
 
-    //write_file_out(time_spent);
+    write_file_out(time_spent);
 
     return 0;
 }
