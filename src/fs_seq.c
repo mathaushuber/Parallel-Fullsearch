@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
-#include "fullsearch.h"
+#include "fs_seq.h"
 
 struct frames *alloc_frames()
 {
@@ -131,6 +131,19 @@ struct pos *full_search(unsigned char (*frame_R)[WIDTH], unsigned char (*frame_A
     return motion_vectors;
 }
 
+int write_file_out(float time){
+    FILE *out;
+    out = fopen("../out/log.csv", "a"); 
+    if(out == NULL)
+    {
+        printf("Error write out file!");
+        return 1;
+    }
+    fprintf(out, "\n");
+    fprintf(out, "\t\t\t%f", time);
+    fclose(out);
+}
+
 int main()
 {
     double time_spent = 0.0;
@@ -174,6 +187,7 @@ int main()
     for (i=0; i<N_BLOCKS-1; ++i)
         free(video_compacted.motion_vectors[i]);
        
-
+    write_file_out(time_spent);
+    
     return 0;
 }
