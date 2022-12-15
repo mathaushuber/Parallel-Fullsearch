@@ -1,5 +1,5 @@
 # Parallel-FullSearch
-Aiming to bring an efficient method of the Full Search algorithm, through the massive parallelism available in current GPGPU devices.
+Aiming to bring an efficient method of the Full Search algorithm.
 (i) The parallel solution for multi-core GPP using OpenMP library; (ii) The distributed solution for cluster/grid machines using Message Passing Library Interfaces (MPI).
 
 In the file, for each frame, there are the data of the Y, Cb and Cr channels: The luminance channel has all pixels (640x360). The Cb and Cr channels have 
@@ -53,4 +53,6 @@ Parallel Algorithm with Heuristics 0.10s
 Brute Force Sequential Algorithm 1293477.58s
 
 Brute Force Parallel Algorithm tests 23.54s
+
+<img src=".images/testes3.png">
 
